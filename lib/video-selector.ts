@@ -100,6 +100,84 @@ function qualityScore(item: ActivityItem, watchCount: number): number {
   return Math.max(0, Math.min(1, score))
 }
 
+type ContentType = 
+  | 'personality_revealing'  // shows who the person is
+  | 'entertainment'          // generic entertainment
+  | 'music'                  // music videos / audio
+  | 'news'                   // news clips
+  | 'sports_highlights'      // game footage
+  | 'educational'            // explainers / tutorials
+  | 'commercial'             // trailers / ads / promos
+
+function classifyContentType(title: string, creator: string): ContentType {
+  const text = (title + ' ' + creator).toLowerCase()
+
+  // MUSIC — official releases reveal nothing personal
+  const musicSignals = [
+    'official video', 'official music video', 'official audio', 'official lyric',
+    'lyrics video', 'music video', 'vevo', '- topic',
+    'full album', 'album stream', 'karaoke', 'cover song',
+    't-series', 'zee music', 'saregama', 'tips official', 'sony music',
+    'warner music', 'universal music',
+  ]
+  if (musicSignals.some(s => text.includes(s))) return 'music'
+
+  // NEWS — reveals political lean but not personality
+  const newsSignals = [
+    'breaking news', 'news update', 'live news', 'press conference',
+    'budget 2', 'election result', 'parliament', 'lok sabha', 'rajya sabha',
+    'aaj tak', 'ndtv', 'republic tv', 'times now', 'india tv',
+    'cnn', 'bbc news', 'fox news', 'msnbc', 'abc news',
+  ]
+  if (newsSignals.some(s => text.includes(s))) return 'news'
+
+  // SPORTS HIGHLIGHTS — game footage not personality
+  const sportsHighlightSignals = [
+    'match highlights', 'full match', 'full game', 'race highlights',
+    'innings highlights', 'goals scored', 'extended highlights',
+    'live match', 'live score', 'matchday',
+  ]
+  if (sportsHighlightSignals.some(s => text.includes(s))) return 'sports_highlights'
+
+  // COMMERCIAL — trailers, promos, ads
+  const commercialSignals = [
+    'official trailer', 'trailer 2', 'teaser trailer', 'final trailer',
+    'movie trailer', 'series trailer', 'first look', 'promo',
+    'ad film', 'advertisement',
+  ]
+  if (commercialSignals.some(s => text.includes(s))) return 'commercial'
+
+  // EDUCATIONAL — reveals curiosity but not humor/personality
+  const educationalSignals = [
+    'how to ', 'tutorial', 'explained', 'full course', 'lecture',
+    'step by step', 'beginners guide', 'learn ', 'masterclass',
+    'crash course', 'full tutorial',
+  ]
+  if (educationalSignals.some(s => text.includes(s))) return 'educational'
+
+  // PERSONALITY REVEALING — strong signals
+  const personalitySignals = [
+    // Opinion and takes
+    'unpopular opinion', 'hot take', 'honest', 'rant', 'controversial',
+    'overrated', 'underrated', 'nobody talks about', 'changed my mind',
+    'i tried', 'i spent', 'i quit', 'why i', 'my honest',
+    // Humor types
+    'roast', 'comedy sketch', 'stand up', 'standup', 'funny video',
+    'try not to laugh', 'dark humor', 'absurd', 'parody', 'satire',
+    // Personal content
+    'day in my life', 'storytime', 'vlog', 'my routine', 'q&a',
+    'reacting to', 'reaction', 'responding to',
+    // Niche interest
+    'tier list', 'ranking', 'deep dive', 'obsessed with',
+    'guilty pleasure', 'hidden gem', 'most underrated',
+  ]
+  if (personalitySignals.some(s => text.includes(s))) return 'personality_revealing'
+
+  // Default — treat as personality revealing if no other signal matches
+  // Better to include borderline content than exclude it
+  return 'personality_revealing'
+}
+
 export function selectRepresentativeVideos(items: ActivityItem[]): RepresentativeVideo[] {
   if (items.length === 0) return []
 
@@ -144,30 +222,55 @@ for (const item of items) {
   const maxTopicCount = Math.max(...Array.from(topicCounts.values()), 1)
 
   // Score each unique item
-  type ScoredItem = ActivityItem & { score: number; topic: string; contentIdentity: string }
+  type ScoredItem = ActivityItem & { 
+  score: number
+  topic: string
+  contentIdentity: string
+  contentType: ContentType  // add this
+}
+
 const scored: ScoredItem[] = unique.map(item => {
   const topic = classifyTopic(item.title, item.creator_name)
+  const contentType = classifyContentType(item.title, item.creator_name)  // add this
   const topicFreq = (topicCounts.get(topic) || 0) / maxTopicCount
   const creatorRepeat = Math.min((creatorCounts.get(item.creator_name) || 0) / maxCreatorCount, 1)
   const recency = recencyScore(item.watched_at)
   const contentIdentity = extractContentFingerprint(item.title, item.creator_name, topic)
+  const watchCount = videoWatchCounts.get(item.youtube_video_id) || 1
+  const quality = qualityScore(item, watchCount)
+  const niche = nicheScore(item)
 
-    // Reduced randomness from 0.2 to 0.1 for more consistent results
-   const watchCount = videoWatchCounts.get(item.youtube_video_id) || 1
-const quality = qualityScore(item, watchCount)
+  // Penalise non-personality-revealing content heavily
+  const contentTypeMultiplier: Record<ContentType, number> = {
+    personality_revealing: 1.0,
+    educational: 0.6,
+    entertainment: 0.5,
+    sports_highlights: 0.3,
+    news: 0.2,
+    music: 0.1,
+    commercial: 0.0,
+  }
 
-const score =
-  recency * 0.25 +
-  topicFreq * 0.30 +
-  creatorRepeat * 0.20 +
-  quality * 0.15 +
-  Math.random() * 0.10
+  const multiplier = contentTypeMultiplier[contentType]
 
-    return { ...item, score, topic, contentIdentity }
-  })
+  const score = (
+    recency * 0.10 +
+    topicFreq * 0.25 +
+    creatorRepeat * 0.20 +
+    quality * 0.25 +
+    niche * 0.10 +
+    Math.random() * 0.10
+  ) * multiplier
+
+  return { ...item, score, topic, contentIdentity, contentType }
+})
+
+// Hard exclude non-personality content from selection pool
+const EXCLUDED_TYPES: ContentType[] = ['music', 'commercial', 'news', 'sports_highlights']
+const eligible = scored.filter(s => !EXCLUDED_TYPES.includes(s.contentType))
 
   // Sort by score descending
-  scored.sort((a, b) => b.score - a.score)
+  eligible.sort((a, b) => b.score - a.score)
 
   // Pick top 6 topics by frequency
   const sortedTopics = Array.from(topicCounts.entries())
@@ -190,7 +293,7 @@ const score =
   // First pass: pick best from each top topic
   for (const topic of sortedTopics) {
     if (selected.length >= TARGET) break
-    const topicVideos = scored.filter(s =>
+    const topicVideos = eligible.filter(s =>
       s.topic === topic &&
       !selected.find(sel => sel.youtube_video_id === s.youtube_video_id)
     )
@@ -214,7 +317,7 @@ const score =
 
   // Second pass: fill remaining slots from top scored, still enforcing diversity
   if (selected.length < 8) {
-    for (const video of scored) {
+    for (const video of eligible) {
       if (selected.length >= TARGET) break
       if (selected.find(s => s.youtube_video_id === video.youtube_video_id)) continue
 
