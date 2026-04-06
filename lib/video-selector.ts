@@ -312,6 +312,17 @@ const score = (
 const EXCLUDED_TYPES: ContentType[] = ['music', 'commercial', 'news', 'sports_highlights']
 const eligible = scored.filter(s => !EXCLUDED_TYPES.includes(s.contentType))
 
+console.log('Total scored:', scored.length)
+console.log('After content filter:', eligible.length)
+console.log('Content type breakdown:', 
+  Object.entries(
+    scored.reduce((acc: any, s) => {
+      acc[s.contentType] = (acc[s.contentType] || 0) + 1
+      return acc
+    }, {})
+  )
+)
+
   // Sort by score descending
   eligible.sort((a, b) => b.score - a.score)
 
@@ -395,5 +406,5 @@ return final.map((item, index) => ({
     content_identity: item.contentIdentity,
     final_score: Math.round(item.score * 1000) / 1000,
   }
-}))
+  }))
 }
