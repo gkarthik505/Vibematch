@@ -38,13 +38,17 @@ function classifyTopic(title: string, creator: string): string {
 }
 
 function recencyScore(watchedAt: string | null): number {
-  if (!watchedAt) return 0.3
+  if (!watchedAt) return 0.5
   const now = Date.now()
   const then = new Date(watchedAt).getTime()
   const ageMs = now - then
-  const sixMonths = 180 * 24 * 60 * 60 * 1000
-  // 1.0 for today, ~0.0 for 6 months ago — shorter window than before
-  return Math.max(0, 1 - ageMs / sixMonths)
+  const oneYear = 365 * 24 * 60 * 60 * 1000
+  const twoYears = 2 * oneYear
+
+  // Gentle logarithmic decay — recent gets a small boost
+  // but 6 month old content still scores 0.6, 1 year old scores 0.4
+  const ageFraction = Math.min(ageMs / twoYears, 1)
+  return Math.max(0.2, 1 - Math.sqrt(ageFraction))
 }
 
 // Extract a "content identity" — the show, artist, or series name
@@ -292,14 +296,14 @@ const scored: ScoredItem[] = unique.map(item => {
 
   const multiplier = contentTypeMultiplier[contentType]
 
-  const score = (
-    recency * 0.10 +
-    topicFreq * 0.25 +
-    creatorRepeat * 0.20 +
-    quality * 0.25 +
-    niche * 0.10 +
-    Math.random() * 0.10
-  ) * multiplier
+const score = (
+  recency * 0.10 +
+  topicFreq * 0.40 +
+  creatorRepeat * 0.25 +
+  quality * 0.15 +
+  niche * 0.05 +
+  Math.random() * 0.05
+) * multiplier
 
   return { ...item, score, topic, contentIdentity, contentType }
 })
