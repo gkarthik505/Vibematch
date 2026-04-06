@@ -178,6 +178,45 @@ function classifyContentType(title: string, creator: string): ContentType {
   return 'personality_revealing'
 }
 
+function nicheScore(item: ActivityItem): number {
+  const title = (item.title || '').toLowerCase()
+  const creator = (item.creator_name || '').toLowerCase()
+
+  let score = 0.5
+
+  const mainstreamSignals = [
+    'vevo', 'official music video', 'official video', 'official audio',
+    'topic', ' - topic',
+    'netflix', 'prime video', 'disney', 'hbo', 'bbc', 'cnn', 'fox news',
+    'sony music', 'universal music', 'warner music', 't-series', 'zee music',
+    'saregama', 'tips official', 'sony liv',
+    'espncricinfo', 'bcci', 'star sports', 'sky sports', 'nba official',
+    'highlights', 'official channel', 'official page',
+  ]
+  if (mainstreamSignals.some(s => title.includes(s) || creator.includes(s))) {
+    score -= 0.3
+  }
+
+  const nicheSignals = [
+    'my ', 'i tried', 'i made', 'i spent', 'day in my life', 'storytime',
+    'unpopular opinion', 'honest review', 'i quit', 'why i',
+    'vlog', 'rant', 'reaction to', 'responding to',
+    'tier list', 'ranking', 'deep dive',
+    'hot take', 'controversial', 'nobody talks about', 'underrated',
+    'obsessed with', 'changed my mind', 'overrated',
+  ]
+  if (nicheSignals.some(s => title.includes(s))) {
+    score += 0.15
+  }
+
+  if (!creator.includes('official') && !creator.includes('records') &&
+      !creator.includes('music') && !creator.includes('entertainment')) {
+    score += 0.1
+  }
+
+  return Math.max(0, Math.min(1, score))
+}
+
 export function selectRepresentativeVideos(items: ActivityItem[]): RepresentativeVideo[] {
   if (items.length === 0) return []
 
