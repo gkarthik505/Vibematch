@@ -51,14 +51,14 @@ export default async function DiscoverPage() {
   }
 
   const filtered = profileCandidates.filter(candidate => {
-    if (!myProfile.interested_in || myProfile.interested_in === 'everyone') return true
-    if (!candidate.gender) return true
-    const interestedIn = myProfile.interested_in.toLowerCase()
-    const gender = candidate.gender.toLowerCase()
-    if (interestedIn === 'men') return gender === 'man'
-    if (interestedIn === 'women') return gender === 'woman'
-    return true
-  })
+  if (!myProfile.interested_in || myProfile.interested_in === 'everyone') return true
+  if (!candidate.gender) return true
+  const interestedIn = myProfile.interested_in.toLowerCase()
+  const gender = candidate.gender.toLowerCase()
+  if (interestedIn === 'men' || interestedIn === 'man') return gender === 'man' || gender === 'male'
+  if (interestedIn === 'women' || interestedIn === 'woman') return gender === 'woman' || gender === 'female'
+  return true
+})
 
   if (filtered.length === 0) {
     return (
@@ -104,5 +104,7 @@ export default async function DiscoverPage() {
     )
   }
 
+  console.log('Discovery users found:', discoveryUsers.length)
+  
   return <DiscoverClient initialUsers={discoveryUsers} currentUserId={user.id} />
 }
