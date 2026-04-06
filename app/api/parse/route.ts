@@ -67,6 +67,10 @@ for (let i = 0; i < videoIds.length; i += 50) {
   batchStats.forEach((v, k) => allStats.set(k, v))
 }
 
+console.log('YouTube API stats count:', allStats.size)
+console.log('Total candidates:', candidates.length)
+console.log('Sample video IDs:', videoIds.slice(0, 3))
+
 // Step 3: Enrich candidates with API data and re-score
 const enriched = candidates
   .map(v => {
