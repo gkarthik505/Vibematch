@@ -20,8 +20,8 @@ export default function VideoPlayer({ videoId, title, autoplay = false }: Props)
     )
   }
 
-  const src = `https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1&mute=1${autoplay ? '&autoplay=1' : ''}`
-
+  const src = `https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1&controls=1${autoplay ? '&autoplay=1' : ''}`
+  
   if (errored) {
     return (
       <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#141414] text-center p-4 gap-3">
