@@ -61,15 +61,39 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Store representative videos
-    const videoRows = repVideos.map(v => ({
-      user_id: user.id,
-      youtube_video_id: v.youtube_video_id,
-      title: v.title,
-      creator_name: v.creator_name,
-      score: v.score,
-      position: v.position,
-    }))
+// Fetch YouTube stats for representative videos
+const { fetchVideoStats, computeNicheScore } = await import('@/lib/youtube')
+const videoIds = repVideos.map(v => v.youtube_video_id)
+const statsMap = await fetchVideoStats(videoIds)
+
+// Filter out long-form content and re-rank by niche score
+const enrichedVideos = repVideos
+  .map(v => {
+    const stats = statsMap.get(v.youtube_video_id)
+    if (!stats) return { ...v, keep: true, nicheScore: 0.5, stats: null }
+    if (stats.durationSeconds > 300 && !stats.isShort) {
+      return { ...v, keep: false, nicheScore: 0, stats }
+    }
+    const nicheScore = computeNicheScore(stats.viewCount, stats.channelSubscriberCount)
+    return { ...v, keep: true, nicheScore, stats }
+  })
+  .filter(v => v.keep)
+  .sort((a, b) => b.nicheScore - a.nicheScore)
+  .slice(0, 10)
+
+// Store representative videos with stats
+const videoRows = enrichedVideos.map((v, index) => ({
+  user_id: user.id,
+  youtube_video_id: v.youtube_video_id,
+  title: v.title,
+  creator_name: v.creator_name,
+  score: v.score,
+  position: index,
+  view_count: v.stats?.viewCount || 0,
+  subscriber_count: v.stats?.channelSubscriberCount || 0,
+  duration_seconds: v.stats?.durationSeconds || 0,
+  is_short: v.stats?.isShort || false,
+}))
 
     const { error: videoError } = await supabase.from('representative_videos').insert(videoRows)
     if (videoError) {
