@@ -51,48 +51,120 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Select representative videos
-    const repVideos = selectRepresentativeVideos(items.slice(0, 1000))
 
-    if (repVideos.length < 3) {
-      return NextResponse.json(
-        { error: 'We need more data to build your vibe. Your file has too few recognizable YouTube videos.' },
-        { status: 400 }
-      )
-    }
+// Step 1: Get shortlist of 80 candidates from keyword scoring
+const candidates = selectRepresentativeVideos(items.slice(0, 1000))
 
-// Fetch YouTube stats for representative videos
+// Step 2: Fetch YouTube stats for all candidates
 const { fetchVideoStats, computeNicheScore } = await import('@/lib/youtube')
-const videoIds = repVideos.map(v => v.youtube_video_id)
-const statsMap = await fetchVideoStats(videoIds)
+const videoIds = candidates.map(v => v.youtube_video_id)
 
-// Filter out long-form content and re-rank by niche score
-const enrichedVideos = repVideos
+// Fetch in batches of 50 (YouTube API limit)
+const allStats = new Map()
+for (let i = 0; i < videoIds.length; i += 50) {
+  const batch = videoIds.slice(i, i + 50)
+  const batchStats = await fetchVideoStats(batch)
+  batchStats.forEach((v, k) => allStats.set(k, v))
+}
+
+// Step 3: Enrich candidates with API data and re-score
+const enriched = candidates
   .map(v => {
-    const stats = statsMap.get(v.youtube_video_id)
-    if (!stats) return { ...v, keep: true, nicheScore: 0.5, stats: null }
-    if (stats.durationSeconds > 300 && !stats.isShort) {
-      return { ...v, keep: false, nicheScore: 0, stats }
+    const stats = allStats.get(v.youtube_video_id)
+    if (!stats) {
+      return {
+        ...v,
+        keep: true,
+        finalScore: v.score * 0.5, // penalise if no API data
+        nicheScore: 0.5,
+        stats: null,
+      }
     }
+
+    // Hard filter: exclude long-form (over 5 minutes, not a short)
+    if (stats.durationSeconds > 300 && !stats.isShort) {
+      return { ...v, keep: false, finalScore: 0, nicheScore: 0, stats }
+    }
+
     const nicheScore = computeNicheScore(stats.viewCount, stats.channelSubscriberCount)
-    return { ...v, keep: true, nicheScore, stats }
+
+    // Quality score from API data
+    const hasEngagement = stats.likeCount > 0 || stats.commentCount > 0
+    const engagementRate = stats.viewCount > 0
+      ? (stats.likeCount + stats.commentCount) / stats.viewCount
+      : 0
+    const apiQualityScore = Math.min(engagementRate * 10, 1.0)
+
+    // Final score combines keyword score + API signals
+    const finalScore =
+      v.score * 0.40 +           // keyword/topic score from phase 1
+      nicheScore * 0.30 +         // niche signal (views vs subscribers)
+      apiQualityScore * 0.20 +    // engagement quality
+      (stats.isShort ? 0.10 : 0)  // slight boost for shorts
+
+    return { ...v, keep: true, finalScore, nicheScore, stats }
   })
   .filter(v => v.keep)
-  .sort((a, b) => b.nicheScore - a.nicheScore)
+
+// Step 4: Apply final diversity pass on enriched candidates
+// Enforce creator and content diversity on the API-enriched pool
+const finalCreatorCount = new Map<string, number>()
+const finalContentCount = new Map<string, number>()
+const finalTopicCount = new Map<string, number>()
+
+const repVideos = enriched
+  .sort((a, b) => b.finalScore - a.finalScore)
+  .filter(v => {
+    const creator = v.creator_name || ''
+    const content = v.score_breakdown?.content_identity || creator
+    const topic = v.score_breakdown?.topic || 'other'
+
+    const creatorCount = finalCreatorCount.get(creator) || 0
+    const contentCount = finalContentCount.get(content) || 0
+    const topicCount = finalTopicCount.get(topic) || 0
+
+    if (creatorCount >= 1) return false
+    if (contentCount >= 1) return false
+    if (topicCount >= 2) return false
+
+    finalCreatorCount.set(creator, creatorCount + 1)
+    finalContentCount.set(content, contentCount + 1)
+    finalTopicCount.set(topic, topicCount + 1)
+    return true
+  })
   .slice(0, 10)
 
-// Store representative videos with stats
-const videoRows = enrichedVideos.map((v, index) => ({
+if (repVideos.length < 3) {
+  return NextResponse.json(
+    { error: 'We need more data to build your vibe.' },
+    { status: 400 }
+  )
+}
+
+// Step 5: Store final videos with full breakdown
+const videoRows = repVideos.map((v, index) => ({
   user_id: user.id,
   youtube_video_id: v.youtube_video_id,
   title: v.title,
   creator_name: v.creator_name,
-  score: v.score,
+  score: v.finalScore,
   position: index,
   view_count: v.stats?.viewCount || 0,
   subscriber_count: v.stats?.channelSubscriberCount || 0,
   duration_seconds: v.stats?.durationSeconds || 0,
   is_short: v.stats?.isShort || false,
+  score_breakdown: {
+    topic: v.score_breakdown?.topic,
+    content_type: v.score_breakdown?.content_type,
+    content_identity: v.score_breakdown?.content_identity,
+    keyword_score: Math.round(v.score * 1000) / 1000,
+    niche_score: Math.round(v.nicheScore * 1000) / 1000,
+    final_score: Math.round(v.finalScore * 1000) / 1000,
+    duration_seconds: v.stats?.durationSeconds || 0,
+    view_count: v.stats?.viewCount || 0,
+    subscriber_count: v.stats?.channelSubscriberCount || 0,
+    is_short: v.stats?.isShort || false,
+  }
 }))
 
     const { error: videoError } = await supabase.from('representative_videos').insert(videoRows)

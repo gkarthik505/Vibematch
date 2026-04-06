@@ -331,7 +331,7 @@ const eligible = scored.filter(s => !EXCLUDED_TYPES.includes(s.contentType))
   const MAX_PER_CREATOR = 1
   const MAX_PER_CONTENT = 1
   const MAX_PER_TOPIC = 2
-  const TARGET = 10
+  const TARGET = 80
 
   // First pass: pick best from each top topic
   for (const topic of sortedTopics) {
@@ -377,17 +377,23 @@ const eligible = scored.filter(s => !EXCLUDED_TYPES.includes(s.contentType))
   }
 
   // Light shuffle to avoid always showing same order
-  const final = selected.slice(0, 12)
+  const final = selected.slice(0, 80)
   for (let i = final.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1))
     ;[final[i], final[j]] = [final[j], final[i]]
   }
 
-  return final.map((item, index) => ({
-    youtube_video_id: item.youtube_video_id,
-    title: item.title,
-    creator_name: item.creator_name,
-    score: item.score,
-    position: index,
-  }))
+return final.map((item, index) => ({
+  youtube_video_id: item.youtube_video_id,
+  title: item.title,
+  creator_name: item.creator_name,
+  score: item.score,
+  position: index,
+  score_breakdown: {
+    topic: item.topic,
+    content_type: item.contentType,
+    content_identity: item.contentIdentity,
+    final_score: Math.round(item.score * 1000) / 1000,
+  }
+}))
 }
