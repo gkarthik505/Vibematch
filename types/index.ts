@@ -61,9 +61,26 @@ export interface Match {
 }
 
 export interface DiscoveryUser {
-  profile: Profile
-  videos: RepresentativeVideo[]
-  taste: TasteProfile
+  profile: any
+  videos: any[]
+  taste: any
+  matchScore: {
+    overall: number
+    dimensions: {
+      humor: number
+      music: number
+      film: number
+      sports: number
+      tech: number
+      gaming: number
+      curiosity: number
+      lifestyle: number
+      pets: number
+    }
+    conversationStarter: string | null
+    sharedTopics: string[]
+    theirTopics: string[]
+  } | null
 }
 
 export type ParseResult = {

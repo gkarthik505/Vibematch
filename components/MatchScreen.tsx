@@ -25,7 +25,7 @@ export default function MatchScreen({ user, onDismiss }: Props) {
           )}
           {user.taste.top_topics.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
-              {user.taste.top_topics.map(t => (
+              {user.taste.top_topics.map((t: string) => (
                 <span
                   key={t}
                   className="text-xs bg-[#1e1e1e] border border-[#2a2a2a] rounded-full px-2.5 py-1 text-[#aaa]"

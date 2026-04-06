@@ -74,23 +74,37 @@ export default async function DiscoverPage() {
 
   const candidateIds = filtered.map(p => p.id)
 
-  const [{ data: allVideos }, { data: allTastes }] = await Promise.all([
-    supabase.from('representative_videos').select('*').in('user_id', candidateIds).order('position'),
-    supabase.from('taste_profiles').select('*').in('user_id', candidateIds),
-  ])
+  const [{ data: allVideos }, { data: allTastes }, { data: myTaste }] = await Promise.all([
+  supabase.from('representative_videos').select('*').in('user_id', candidateIds).order('position'),
+  supabase.from('taste_profiles').select('*').in('user_id', candidateIds),
+  supabase.from('taste_profiles').select('personality_dimensions').eq('user_id', user.id).single(),
+])
+
+  const { computeMatchScore } = await import('@/lib/matching')
 
   const discoveryUsers: DiscoveryUser[] = filtered
-    .map(profile => {
-      const videos = (allVideos || []).filter(v => v.user_id === profile.id)
-      const taste = (allTastes || []).find(t => t.user_id === profile.id)
-      if (videos.length === 0) return null
-      return {
-        profile,
-        videos,
-        taste: taste || { top_topics: [], vibe_summary: '' },
-      }
-    })
-    .filter(Boolean) as DiscoveryUser[]
+  .map((profile, i) => {
+    const videos = (allVideos || []).filter(v => v.user_id === profile.id)
+    const taste = (allTastes || []).find(t => t.user_id === profile.id)
+    if (videos.length === 0) return null
+
+    // Compute match score if both have personality dimensions
+    let matchScore = null
+    if (myTaste?.personality_dimensions && taste?.personality_dimensions) {
+      matchScore = computeMatchScore(
+        myTaste.personality_dimensions,
+        taste.personality_dimensions
+      )
+    }
+
+    return {
+      profile,
+      videos,
+      taste: taste || { top_topics: [], vibe_summary: '' },
+      matchScore,
+    }
+  })
+  .filter(Boolean) as DiscoveryUser[]
 
   if (discoveryUsers.length === 0) {
     return (
