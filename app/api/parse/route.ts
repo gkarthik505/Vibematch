@@ -176,14 +176,19 @@ const videoRows = (repVideos as any[]).map((v: any, index: number) => ({
     }
 
     // Generate taste profile
-    const taste = generateTasteProfile(items)
+    // Generate taste profile
+const taste = generateTasteProfile(items)
+const { generatePersonalityDimensions } = await import('@/lib/personality')
+const personality = generatePersonalityDimensions(items)
 
-    const { error: tasteError } = await supabase.from('taste_profiles').upsert({
-      user_id: user.id,
-      top_topics: taste.top_topics,
-      vibe_summary: taste.vibe_summary,
-      updated_at: new Date().toISOString(),
-    })
+const { error: tasteError } = await supabase.from('taste_profiles').upsert({
+  user_id: user.id,
+  top_topics: taste.top_topics,
+  vibe_summary: taste.vibe_summary,
+  personality_dimensions: personality,
+  updated_at: new Date().toISOString(),
+})
+
     if (tasteError) {
       console.error('Taste profile error:', tasteError)
     }
