@@ -114,11 +114,10 @@ const finalTopicCount = new Map<string, number>()
 
 const repVideos = enriched
   .sort((a, b) => b.finalScore - a.finalScore)
-  .filter(v => {
+  .filter((v: any) => {
     const creator = v.creator_name || ''
-    const breakdown = v.score_breakdown as any
-    const content = breakdown?.content_identity || creator
-    const topic = breakdown?.topic || 'other'
+    const content = v.score_breakdown?.content_identity || creator
+    const topic = v.score_breakdown?.topic || 'other'
 
     const creatorCount = finalCreatorCount.get(creator) || 0
     const contentCount = finalContentCount.get(content) || 0
