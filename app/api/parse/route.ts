@@ -116,8 +116,9 @@ const repVideos = enriched
   .sort((a, b) => b.finalScore - a.finalScore)
   .filter(v => {
     const creator = v.creator_name || ''
-    const content = v.score_breakdown?.content_identity || creator
-    const topic = v.score_breakdown?.topic || 'other'
+    const breakdown = v.score_breakdown as any
+    const content = breakdown?.content_identity || creator
+    const topic = breakdown?.topic || 'other'
 
     const creatorCount = finalCreatorCount.get(creator) || 0
     const contentCount = finalContentCount.get(content) || 0
@@ -154,9 +155,9 @@ const videoRows = repVideos.map((v, index) => ({
   duration_seconds: v.stats?.durationSeconds || 0,
   is_short: v.stats?.isShort || false,
   score_breakdown: {
-    topic: v.score_breakdown?.topic,
-    content_type: v.score_breakdown?.content_type,
-    content_identity: v.score_breakdown?.content_identity,
+    topic: (v.score_breakdown as any)?.topic,
+    content_type: (v.score_breakdown as any)?.content_type,
+    content_identity: (v.score_breakdown as any)?.content_identity,
     keyword_score: Math.round(v.score * 1000) / 1000,
     niche_score: Math.round(v.nicheScore * 1000) / 1000,
     final_score: Math.round(v.finalScore * 1000) / 1000,
