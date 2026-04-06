@@ -175,6 +175,7 @@ const SPORT_KEYWORDS: Record<string, string[]> = {
   f1: ['formula 1', 'f1 ', 'verstappen', 'hamilton', 'grand prix', 'monaco'],
   kabaddi: ['kabaddi', 'pkl', 'pro kabaddi'],
   wrestling: ['wwe', 'wrestling', 'ufc', 'mma', 'boxing', 'tyson'],
+  badminton: ['badminton', 'pv sindhu', 'lakshya sen', 'saina nehwal', 'bwf', 'shuttlecock'],
 }
 
 const SPORTS_ANALYSIS_SIGNALS = ['analysis', 'explained', 'tactics', 'breakdown', 'deep dive', 'podcast']
@@ -184,14 +185,12 @@ const SPORTS_HIGHLIGHTS_SIGNALS = ['highlights', 'best moments', 'top goals', 'c
 
 const LEFT_SIGNALS = [
   'progressive', 'liberal', 'democrat', 'climate change', 'social justice',
-  'ndtv', 'the wire', 'scroll', 'the quint', 'newslaundry', 'print',
   'aoc', 'bernie', 'lgbtq', 'equality', 'feminism',
 ]
 
 const RIGHT_SIGNALS = [
   'conservative', 'republican', 'trump', 'maga', 'traditional values',
-  'republic tv', 'zee news', 'sudarshan news', 'nationalist',
-  'modi', 'bjp', 'right wing', 'heritage foundation',
+  'republic tv',  'sudarshan news', 'nationalist',
 ]
 
 // ─── TECH ────────────────────────────────────────────────────────────────────
@@ -513,26 +512,20 @@ export function generatePersonalityDimensions(items: ActivityItem[]): Personalit
       distribution: langDistribution,
     },
     humor: {
-      intensity: toIntensity(comedyCount, total, 5),
+      intensity: toIntensity(comedyCount, total, 15),
       types: topHumorTypes,
     },
     pop_culture: {
-      film: {
-        intensity: filmIntensity,
-        types: topFilmTypes,
-      },
-      tv: {
-        intensity: tvIntensity,
-        types: topTVTypes,
-      },
+      film: { intensity: filmIntensity, types: topFilmTypes },
+      tv: { intensity: tvIntensity, types: topTVTypes },
       music: {
-        intensity: musicIntensity,
+        intensity: toIntensity(musicCount, total, 15),
         engagement: musicEngagement,
         genres: topGenres,
       },
     },
     sports: {
-      intensity: toIntensity(sportsCount, total, 5),
+      intensity: toIntensity(sportsCount, total, 10),
       primary: primarySport,
       style: sportsStyle,
     },
@@ -540,34 +533,34 @@ export function generatePersonalityDimensions(items: ActivityItem[]): Personalit
       intensity: toIntensity(politicsCount, total, 3),
       lean: politicsLean,
     },
-    curiosity: toIntensity(curiosityCount, total, 3),
+    curiosity: toIntensity(curiosityCount, total, 8),
     tech: {
-      intensity: toIntensity(techCount, total, 5),
+      intensity: toIntensity(techCount, total, 10),
       style: techStyle,
-      ai_interest: toIntensity(aiCount, total, 2),
+      ai_interest: toIntensity(aiCount, total, 5),
     },
     lifestyle: {
-      fitness: toIntensity(fitnessCount, total, 3),
+      fitness: toIntensity(fitnessCount, total, 8),
       food: {
-        intensity: toIntensity(foodCount, total, 3),
+        intensity: toIntensity(foodCount, total, 8),
         style: foodStyle,
       },
       travel: {
-        intensity: toIntensity(travelCount, total, 3),
+        intensity: toIntensity(travelCount, total, 8),
         style: primaryTravelStyle as 'budget' | 'luxury' | 'adventure' | 'general',
       },
     },
     pets: {
-      intensity: toIntensity(petCount, total, 2),
+      intensity: toIntensity(petCount, total, 5),
       type: petType,
     },
     gaming: {
-      intensity: toIntensity(gamingCount, total, 3),
+      intensity: toIntensity(gamingCount, total, 10),
       style: gamingStyle,
       genres: topGamingGenres,
     },
     finance: {
-      intensity: toIntensity(financeCount, total, 3),
+      intensity: toIntensity(financeCount, total, 5),
       style: financeStyle as 'passive' | 'active',
     },
   }
