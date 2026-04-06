@@ -176,6 +176,7 @@ const SPORT_KEYWORDS: Record<string, string[]> = {
   kabaddi: ['kabaddi', 'pkl', 'pro kabaddi'],
   wrestling: ['wwe', 'wrestling', 'ufc', 'mma', 'boxing', 'tyson'],
   badminton: ['badminton', 'pv sindhu', 'lakshya sen', 'saina nehwal', 'bwf', 'shuttlecock'],
+  squash: ['squash', 'psf', 'world squash', 'nick matthew', 'ramy ashour', 'nour el sherbini'],
 }
 
 const SPORTS_ANALYSIS_SIGNALS = ['analysis', 'explained', 'tactics', 'breakdown', 'deep dive', 'podcast']
