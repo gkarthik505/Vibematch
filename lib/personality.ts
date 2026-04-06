@@ -112,7 +112,7 @@ const BENGALI_SIGNALS = [
   'rabindranath', 'bangla', 'kolkata',
 ]
 
-function detectLanguage(text: string): string | null {
+function detectLanguage(text: string): string {
   if (HINDI_SIGNALS.some(s => text.includes(s))) return 'hindi'
   if (TAMIL_SIGNALS.some(s => text.includes(s))) return 'tamil'
   if (TELUGU_SIGNALS.some(s => text.includes(s))) return 'telugu'
