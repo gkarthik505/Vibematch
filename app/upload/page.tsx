@@ -31,7 +31,10 @@ export default function UploadPage() {
       return
     }
 
-    setItemCount(items.length)
+    setItemCount(items.length) // shows total found items, even if we only send a subset to the server
+
+    // Limit to most recent 1000 items to avoid timeout
+    const limitedItems = items.slice(0, 1000)
 
     if (items.length < 20) {
       setError("We need more data to build your vibe. Your file has too few watch history entries.")
@@ -65,7 +68,7 @@ export default function UploadPage() {
     const response = await fetch('/api/parse', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ items, filePath, warnings }),
+      body: JSON.stringify({ items: limitedItems, filePath, warnings }),
     })
 
     if (!response.ok) {

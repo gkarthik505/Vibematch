@@ -29,7 +29,7 @@ export default async function DiscoverPage() {
   let query = supabase
     .from('profiles')
     .select('*')
-    .eq('onboarding_complete', true)
+    .eq('upload_complete', true)
     .neq('id', user.id)
 
   if (swipedIds.length > 0) {

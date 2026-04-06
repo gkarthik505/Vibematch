@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     await supabase.from('taste_profiles').delete().eq('user_id', user.id)
 
     // Store activity items in batches of 500
-    const activityRows = items.slice(0, 5000).map(item => ({
+    const activityRows = items.slice(0, 1000).map(item => ({
       user_id: user.id,
       title: item.title,
       youtube_video_id: item.youtube_video_id,
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Select representative videos
-    const repVideos = selectRepresentativeVideos(items)
+    const repVideos = selectRepresentativeVideos(items.slice(0, 1000))
 
     if (repVideos.length < 3) {
       return NextResponse.json(
