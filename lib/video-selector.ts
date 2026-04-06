@@ -330,7 +330,7 @@ console.log('Content type breakdown:',
   const sortedTopics = Array.from(topicCounts.entries())
     .filter(([t]) => t !== 'other')
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 8)
+    .slice(0, 15)
     .map(([t]) => t)
 
   // Select videos with strict diversity enforcement
@@ -341,7 +341,7 @@ console.log('Content type breakdown:',
 
   const MAX_PER_CREATOR = 1
   const MAX_PER_CONTENT = 1
-  const MAX_PER_TOPIC = 2
+  const MAX_PER_TOPIC = 10
   const TARGET = 80
 
   // First pass: pick best from each top topic
