@@ -89,7 +89,6 @@ const enriched = candidates
     const nicheScore = computeNicheScore(stats.viewCount, stats.channelSubscriberCount)
 
     // Quality score from API data
-    const hasEngagement = stats.likeCount > 0 || stats.commentCount > 0
     const engagementRate = stats.viewCount > 0
       ? (stats.likeCount + stats.commentCount) / stats.viewCount
       : 0
@@ -113,7 +112,7 @@ const finalContentCount = new Map<string, number>()
 const finalTopicCount = new Map<string, number>()
 
 const repVideos = enriched
-  .sort((a, b) => b.finalScore - a.finalScore)
+  .sort((a: any, b: any) => b.finalScore - a.finalScore)
   .filter((v: any) => {
     const creator = v.creator_name || ''
     const content = v.score_breakdown?.content_identity || creator
@@ -142,7 +141,7 @@ if (repVideos.length < 3) {
 }
 
 // Step 5: Store final videos with full breakdown
-const videoRows = repVideos.map((v, index) => ({
+const videoRows = (repVideos as any[]).map((v: any, index: number) => ({
   user_id: user.id,
   youtube_video_id: v.youtube_video_id,
   title: v.title,
